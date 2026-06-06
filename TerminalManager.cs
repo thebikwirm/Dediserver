@@ -1,5 +1,6 @@
 using Network;
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using UnityEngine;
@@ -8,14 +9,20 @@ namespace RailroaderDedicatedHost
 {
     public static class TerminalManager
     {
+        private const uint AttachParentProcess = 0xFFFFFFFF;
+
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool AllocConsole();
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool AttachConsole(uint dwProcessId);
 
         private static bool _initialized;
         private static Thread _inputThread;
         private static readonly object _lock = new object();
         private static string _pendingCommand;
         private static bool _running;
+        private static bool _hasConsole;
 
         public static void Init(DedicatedServerConfig config)
         {
@@ -25,22 +32,22 @@ namespace RailroaderDedicatedHost
             _initialized = true;
             _running = true;
 
-            if (config.AllocateConsoleWindow)
-            {
-                AllocConsole();
-            }
+            _hasConsole = TryAttachOrCreateConsole(config.AllocateConsoleWindow);
 
-            try
+            if (_hasConsole)
             {
-                System.Console.Title = "Railroader Dedicated Host";
-            }
-            catch
-            {
-            }
+                try
+                {
+                    System.Console.Title = "Railroader Dedicated Host";
+                }
+                catch
+                {
+                }
 
-            WriteLine("Railroader Dedicated Host");
-            WriteLine("Type 'help' for commands.");
-            WritePrompt();
+                WriteLine("Railroader Dedicated Host");
+                WriteLine("Type 'help' for commands.");
+                WritePrompt();
+            }
 
             _inputThread = new Thread(ReadLoop)
             {
@@ -80,6 +87,9 @@ namespace RailroaderDedicatedHost
 
         public static void WriteLine(string message)
         {
+            if (!_hasConsole)
+                return;
+
             try
             {
                 System.Console.WriteLine("[DedicatedHost] " + message);
@@ -89,12 +99,55 @@ namespace RailroaderDedicatedHost
             }
         }
 
+        private static bool TryAttachOrCreateConsole(bool allowAllocConsole)
+        {
+            bool attached = AttachConsole(AttachParentProcess);
+
+            if (!attached && allowAllocConsole)
+            {
+                attached = AllocConsole();
+            }
+
+            if (!attached)
+                return false;
+
+            try
+            {
+                StreamWriter stdout = new StreamWriter(System.Console.OpenStandardOutput())
+                {
+                    AutoFlush = true
+                };
+
+                StreamWriter stderr = new StreamWriter(System.Console.OpenStandardError())
+                {
+                    AutoFlush = true
+                };
+
+                StreamReader stdin = new StreamReader(System.Console.OpenStandardInput());
+
+                System.Console.SetOut(stdout);
+                System.Console.SetError(stderr);
+                System.Console.SetIn(stdin);
+            }
+            catch
+            {
+            }
+
+            return true;
+        }
+
         private static void ReadLoop()
         {
             while (_running)
             {
                 try
                 {
+                    if (!_hasConsole)
+                    {
+                        Thread.Sleep(1000);
+                        continue;
+                    }
+
                     string line = System.Console.ReadLine();
 
                     if (line == null)
@@ -155,6 +208,9 @@ namespace RailroaderDedicatedHost
 
         private static void WritePrompt()
         {
+            if (!_hasConsole)
+                return;
+
             try
             {
                 System.Console.Write("> ");
