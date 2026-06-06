@@ -1,11 +1,8 @@
-using Game.Persistence;
 using Network;
 using System;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using UnityEngine;
-using static System.Console;
 
 namespace RailroaderDedicatedHost
 {
@@ -13,9 +10,6 @@ namespace RailroaderDedicatedHost
     {
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool AllocConsole();
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool FreeConsole();
 
         private static bool _initialized;
         private static Thread _inputThread;
@@ -38,7 +32,7 @@ namespace RailroaderDedicatedHost
 
             try
             {
-                Title = "Railroader Dedicated Host";
+                System.Console.Title = "Railroader Dedicated Host";
             }
             catch
             {
@@ -88,13 +82,11 @@ namespace RailroaderDedicatedHost
         {
             try
             {
-                WriteLine("[DedicatedHost] " + message);
+                System.Console.WriteLine("[DedicatedHost] " + message);
             }
             catch
             {
             }
-
-            DedicatedHostManager.Log(message);
         }
 
         private static void ReadLoop()
@@ -103,7 +95,7 @@ namespace RailroaderDedicatedHost
             {
                 try
                 {
-                    string line = ReadLine();
+                    string line = System.Console.ReadLine();
 
                     if (line == null)
                     {
@@ -165,7 +157,7 @@ namespace RailroaderDedicatedHost
         {
             try
             {
-                Write("> ");
+                System.Console.Write("> ");
             }
             catch
             {
