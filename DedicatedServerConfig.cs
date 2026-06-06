@@ -1,7 +1,6 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System;
 using System.IO;
-using System.Xml;
 using UnityModManagerNet;
 
 namespace RailroaderDedicatedHost
@@ -16,7 +15,12 @@ namespace RailroaderDedicatedHost
         public int Port = 7777;
 
         public bool HideGraphics = true;
+        public bool MinimizeWindow = true;
+        public bool HideWindow = false;
         public bool AggressiveGraphicsDisable = false;
+
+        public bool TerminalMode = true;
+        public bool AllocateConsoleWindow = true;
 
         public int TargetServerFps = 20;
         public int AutosaveSeconds = 300;
@@ -28,7 +32,7 @@ namespace RailroaderDedicatedHost
             if (!File.Exists(path))
             {
                 var cfg = new DedicatedServerConfig();
-                File.WriteAllText(path, JsonConvert.SerializeObject(cfg, Newtonsoft.Json.Formatting.Indented));
+                File.WriteAllText(path, JsonConvert.SerializeObject(cfg, Formatting.Indented));
                 modEntry.Logger.Log("[DedicatedHost] Created default dedicated_host.json");
                 return cfg;
             }
