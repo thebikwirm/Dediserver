@@ -18,7 +18,7 @@ namespace RailroaderDedicatedHost
 
             _timer += Time.deltaTime;
 
-            // wait for game startup
+            // wait for game startup fix
             if (_timer < 10f)
                 return;
 
