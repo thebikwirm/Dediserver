@@ -14,6 +14,7 @@ namespace RailroaderDedicatedHost
         private static DedicatedServerConfig _config;
 
         private static float _autosaveTimer;
+        private static bool _logging;
 
         public static void Init(UnityModManager.ModEntry modEntry, DedicatedServerConfig config)
         {
@@ -24,7 +25,7 @@ namespace RailroaderDedicatedHost
 
             if (!IsDedicated)
             {
-                _modEntry.Logger.Log("[DedicatedHost] Dedicated mode disabled.");
+                Log("Dedicated mode disabled.");
                 return;
             }
 
@@ -39,6 +40,8 @@ namespace RailroaderDedicatedHost
             {
                 TerminalManager.Init(config);
             }
+
+            RestartManager.Init(config, modEntry.Path);
 
             if (config.HideGraphics)
             {
@@ -61,6 +64,7 @@ namespace RailroaderDedicatedHost
                 return;
 
             TerminalManager.Update();
+            RestartManager.Update();
 
             if (_config.HideGraphics)
                 GraphicsSuppressor.Tick();
@@ -97,28 +101,66 @@ namespace RailroaderDedicatedHost
             }
         }
 
-        public static void RequestShutdown()
+        public static void RequestShutdown(bool saveBeforeQuit = true)
         {
-            try
+            if (saveBeforeQuit)
             {
-                RequestSave("shutdown");
-            }
-            catch
-            {
+                try
+                {
+                    RequestSave("shutdown");
+                }
+                catch
+                {
+                }
             }
 
             Log("Application quit requested.");
+            TerminalManager.Shutdown();
             Application.Quit();
+        }
+
+        public static void RequestRestart(string reason)
+        {
+            RestartManager.RequestRestart(reason);
         }
 
         public static void Log(string msg)
         {
-            _modEntry?.Logger.Log("[DedicatedHost] " + msg);
+            SafeLog(msg, false);
         }
 
         public static void LogError(string msg)
         {
-            _modEntry?.Logger.Error("[DedicatedHost] " + msg);
+            SafeLog(msg, true);
+        }
+
+        private static void SafeLog(string msg, bool error)
+        {
+            if (_logging || _modEntry == null)
+                return;
+
+            try
+            {
+                _logging = true;
+
+                string prefix = "[DedicatedHost] ";
+                while (!string.IsNullOrEmpty(msg) && msg.StartsWith(prefix, StringComparison.Ordinal))
+                    msg = msg.Substring(prefix.Length);
+
+                msg = prefix + msg;
+
+                if (error)
+                    _modEntry.Logger.Error(msg);
+                else
+                    _modEntry.Logger.Log(msg);
+            }
+            catch
+            {
+            }
+            finally
+            {
+                _logging = false;
+            }
         }
 
         private static bool HasLaunchArg(string arg)
