@@ -10,7 +10,8 @@ namespace RailroaderDedicatedHost
     public static class RestartManager
     {
         private static DedicatedServerConfig _config;
-        private static string _restartFlagPath;
+        private static string _modRestartFlagPath;
+        private static string _gameRestartFlagPath;
         private static DateTime _startedAt;
         private static DateTime? _nextRestartAt;
         private static readonly HashSet<int> _warningsSent = new HashSet<int>();
@@ -20,10 +21,13 @@ namespace RailroaderDedicatedHost
         {
             _config = config;
             _startedAt = DateTime.Now;
-            _restartFlagPath = Path.Combine(modPath, "restart.flag");
+            _modRestartFlagPath = Path.Combine(modPath, "restart.flag");
+            _gameRestartFlagPath = Path.Combine(Directory.GetCurrentDirectory(), "restart.flag");
             _warningsSent.Clear();
             _restartRequested = false;
             _nextRestartAt = CalculateNextRestartTime(DateTime.Now);
+
+            DedicatedHostManager.Log("Restart flag path: " + _gameRestartFlagPath);
 
             if (_nextRestartAt.HasValue)
             {
@@ -54,15 +58,8 @@ namespace RailroaderDedicatedHost
 
             _restartRequested = true;
 
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(_restartFlagPath));
-                File.WriteAllText(_restartFlagPath, DateTime.Now.ToString("O"));
-            }
-            catch (Exception ex)
-            {
-                DedicatedHostManager.LogError("Failed to write restart flag: " + ex);
-            }
+            WriteRestartFlag(_modRestartFlagPath);
+            WriteRestartFlag(_gameRestartFlagPath);
 
             DedicatedHostManager.Log("Restart requested: " + reason);
             TerminalManager.WriteLine("Restart requested: " + reason);
@@ -71,15 +68,36 @@ namespace RailroaderDedicatedHost
 
         public static string GetStatus()
         {
+            string flagInfo = "Restart flag: " + _gameRestartFlagPath;
+
             if (!_nextRestartAt.HasValue)
-                return "Automatic restart: disabled";
+                return "Automatic restart: disabled. " + flagInfo;
 
             TimeSpan remaining = _nextRestartAt.Value - DateTime.Now;
             if (remaining.TotalSeconds < 0.0)
                 remaining = TimeSpan.Zero;
 
             return "Next restart: " + _nextRestartAt.Value.ToString("yyyy-MM-dd HH:mm:ss") +
-                   " (in " + FormatDuration(remaining) + ")";
+                   " (in " + FormatDuration(remaining) + "). " + flagInfo;
+        }
+
+        private static void WriteRestartFlag(string path)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(path))
+                    return;
+
+                string directory = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(directory))
+                    Directory.CreateDirectory(directory);
+
+                File.WriteAllText(path, DateTime.Now.ToString("O"));
+            }
+            catch (Exception ex)
+            {
+                DedicatedHostManager.LogError("Failed to write restart flag " + path + ": " + ex);
+            }
         }
 
         private static void SendWarnings(TimeSpan remaining)
