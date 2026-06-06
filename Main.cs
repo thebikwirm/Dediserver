@@ -1,9 +1,6 @@
-﻿using RailroaderDedicatedHost;
+using HarmonyLib;
+using RailroaderDedicatedHost;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityModManagerNet;
 
@@ -13,24 +10,45 @@ namespace Dediserver
     {
         public static bool enabled;
         private static DedicatedServerConfig _config;
+        private static Harmony _harmony;
 
-        // Simply call. Can be compiled without dependencies on UnityModManagerNet.
-
-        // Transfer a variable with data about the mod.
         static bool Load(UnityModManager.ModEntry modEntry)
         {
+            enabled = true;
+
             _config = DedicatedServerConfig.Load(modEntry);
             DedicatedHostManager.Init(modEntry, _config);
 
-            modEntry.OnUpdate = OnUpdate;
+            _harmony = new Harmony(modEntry.Info.Id);
+            _harmony.PatchAll();
 
+            modEntry.OnUpdate = OnUpdate;
+            modEntry.OnUnload = OnUnload;
+
+            modEntry.Logger.Log("[DedicatedHost] Loaded.");
             return true;
         }
+
         static void OnUpdate(UnityModManager.ModEntry modEntry, float deltaTime)
         {
             DedicatedHostManager.Update(deltaTime);
-            DedicatedBootstrap.Update(_config);
         }
+
+        static bool OnUnload(UnityModManager.ModEntry modEntry)
+        {
+            try
+            {
+                _harmony?.UnpatchAll(modEntry.Info.Id);
+            }
+            catch (Exception ex)
+            {
+                modEntry.Logger.Error("[DedicatedHost] Failed to unpatch Harmony: " + ex);
+            }
+
+            enabled = false;
+            return true;
+        }
+
         static void OnGUI()
         {
         }
