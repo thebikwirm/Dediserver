@@ -174,7 +174,7 @@ namespace RailroaderDedicatedHost
 
             if (lower == "help" || lower == "?")
             {
-                WriteLine("Commands: help, status, save, shutdown, quit, exit");
+                WriteLine("Commands: help, status, save, restart, restartstatus, shutdown, quit, exit");
                 return;
             }
 
@@ -187,12 +187,25 @@ namespace RailroaderDedicatedHost
                 WriteLine("BatchMode: " + Application.isBatchMode);
                 WriteLine("GraphicsDevice: " + SystemInfo.graphicsDeviceType);
                 WriteLine("Multiplayer active: " + Multiplayer.IsClientActive);
+                WriteLine(RestartManager.GetStatus());
+                return;
+            }
+
+            if (lower == "restartstatus")
+            {
+                WriteLine(RestartManager.GetStatus());
                 return;
             }
 
             if (lower == "save")
             {
                 DedicatedHostManager.RequestSave("terminal command");
+                return;
+            }
+
+            if (lower == "restart")
+            {
+                DedicatedHostManager.RequestRestart("terminal command");
                 return;
             }
 
