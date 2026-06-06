@@ -31,17 +31,59 @@ namespace RailroaderDedicatedHost
         private const int SW_MINIMIZE = 6;
         private const int SW_HIDE = 0;
 
+        private static UnityModManager.ModEntry _modEntry;
+        private static bool _active;
+        private static int _command;
+        private static string _action;
+        private static float _retryTimer;
+        private static float _elapsed;
+        private static bool _loggedWaiting;
+
         public static void Minimize(UnityModManager.ModEntry modEntry)
         {
-            Apply(modEntry, SW_MINIMIZE, "minimized");
+            StartSuppression(modEntry, SW_MINIMIZE, "minimized");
         }
 
         public static void Hide(UnityModManager.ModEntry modEntry)
         {
-            Apply(modEntry, SW_HIDE, "hidden");
+            StartSuppression(modEntry, SW_HIDE, "hidden");
         }
 
-        private static void Apply(UnityModManager.ModEntry modEntry, int command, string action)
+        public static void Tick()
+        {
+            if (!_active)
+                return;
+
+            _elapsed += UnityEngine.Time.unscaledDeltaTime;
+            _retryTimer -= UnityEngine.Time.unscaledDeltaTime;
+
+            if (_retryTimer > 0f)
+                return;
+
+            _retryTimer = 0.5f;
+            TryApply();
+
+            if (_elapsed > 30f)
+            {
+                _active = false;
+                _modEntry?.Logger.Warning("[DedicatedHost] Stopped trying to hide/minimize game window after 30 seconds.");
+                DumpOwnedWindows();
+            }
+        }
+
+        private static void StartSuppression(UnityModManager.ModEntry modEntry, int command, string action)
+        {
+            _modEntry = modEntry;
+            _command = command;
+            _action = action;
+            _active = true;
+            _retryTimer = 0f;
+            _elapsed = 0f;
+            _loggedWaiting = false;
+            TryApply();
+        }
+
+        private static void TryApply()
         {
             try
             {
@@ -49,16 +91,22 @@ namespace RailroaderDedicatedHost
 
                 if (handle == IntPtr.Zero)
                 {
-                    modEntry.Logger.Warning("[DedicatedHost] Could not find Railroader game window handle. Console was not hidden.");
+                    if (!_loggedWaiting)
+                    {
+                        _loggedWaiting = true;
+                        _modEntry?.Logger.Warning("[DedicatedHost] Waiting for Railroader game window. Console will not be hidden.");
+                    }
                     return;
                 }
 
-                ShowWindow(handle, command);
-                modEntry.Logger.Log("[DedicatedHost] Game window " + action + ".");
+                ShowWindow(handle, _command);
+                _active = false;
+                _modEntry?.Logger.Log("[DedicatedHost] Game window " + _action + ".");
             }
             catch (Exception ex)
             {
-                modEntry.Logger.Error("[DedicatedHost] Failed to change game window visibility: " + ex);
+                _active = false;
+                _modEntry?.Logger.Error("[DedicatedHost] Failed to change game window visibility: " + ex);
             }
         }
 
@@ -80,7 +128,7 @@ namespace RailroaderDedicatedHost
                 if (string.Equals(className, "ConsoleWindowClass", StringComparison.OrdinalIgnoreCase))
                     return true;
 
-                if (string.Equals(className, "UnityWndClass", StringComparison.OrdinalIgnoreCase))
+                if (className.IndexOf("Unity", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     bestHandle = hWnd;
                     return false;
@@ -97,6 +145,31 @@ namespace RailroaderDedicatedHost
             }, IntPtr.Zero);
 
             return bestHandle;
+        }
+
+        private static void DumpOwnedWindows()
+        {
+            try
+            {
+                uint currentPid = (uint)Process.GetCurrentProcess().Id;
+
+                EnumWindows((hWnd, lParam) =>
+                {
+                    GetWindowThreadProcessId(hWnd, out uint pid);
+                    if (pid != currentPid)
+                        return true;
+
+                    string className = GetClassNameSafe(hWnd);
+                    string title = GetWindowTextSafe(hWnd);
+                    bool visible = IsWindowVisible(hWnd);
+
+                    _modEntry?.Logger.Log("[DedicatedHost] Window dump: class='" + className + "' title='" + title + "' visible=" + visible);
+                    return true;
+                }, IntPtr.Zero);
+            }
+            catch
+            {
+            }
         }
 
         private static string GetClassNameSafe(IntPtr hWnd)
