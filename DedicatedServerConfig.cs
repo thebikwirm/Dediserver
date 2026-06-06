@@ -31,6 +31,15 @@ namespace RailroaderDedicatedHost
         public int TargetServerFps = 20;
         public int AutosaveSeconds = 300;
 
+        // Restart support. RestartEveryHours <= 0 disables interval restarts.
+        public float RestartEveryHours = 0f;
+
+        // Local 24-hour times, e.g. "04:00" or "16:30". Empty disables fixed-time restarts.
+        public string[] RestartAtLocalTimes = new string[0];
+
+        // Warning times before restart, in minutes.
+        public int[] RestartWarningMinutes = new int[] { 15, 5, 1 };
+
         public static DedicatedServerConfig Load(UnityModManager.ModEntry modEntry)
         {
             string path = Path.Combine(modEntry.Path, "dedicated_host.json");
