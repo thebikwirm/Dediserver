@@ -82,7 +82,9 @@
     <Compile Include="DedicatedServerConfig.cs" />
     <Compile Include="GraphicsSuppressor.cs" />
     <Compile Include="Main.cs" />
+    <Compile Include="Patch_MenuManager_AutoHost.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TerminalManager.cs" />
     <Compile Include="WindowSuppressor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
