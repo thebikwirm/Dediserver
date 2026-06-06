@@ -1,20 +1,28 @@
 using HarmonyLib;
 using RailroaderDedicatedHost;
 using System;
+using System.IO;
 using UnityEngine;
 using UnityModManagerNet;
 
 namespace Dediserver
 {
-    static class Main
+    public static class Main
     {
         public static bool enabled;
         private static DedicatedServerConfig _config;
         private static Harmony _harmony;
 
-        static bool Load(UnityModManager.ModEntry modEntry)
+        public static bool Load(UnityModManager.ModEntry modEntry)
         {
+            File.AppendAllText(
+                @"D:\deditest.txt",
+                "LOAD CALLED " + DateTime.Now + Environment.NewLine
+            );
+
             enabled = true;
+
+            modEntry.Logger.Log("[DedicatedHost] Main.Load entered.");
 
             _config = DedicatedServerConfig.Load(modEntry);
             DedicatedHostManager.Init(modEntry, _config);
@@ -29,27 +37,28 @@ namespace Dediserver
             return true;
         }
 
-        static void OnUpdate(UnityModManager.ModEntry modEntry, float deltaTime)
+        public static void OnUpdate(UnityModManager.ModEntry modEntry, float deltaTime)
         {
             DedicatedHostManager.Update(deltaTime);
         }
 
-        static bool OnUnload(UnityModManager.ModEntry modEntry)
+        public static bool OnUnload(UnityModManager.ModEntry modEntry)
         {
             try
             {
                 _harmony?.UnpatchAll(modEntry.Info.Id);
+                TerminalManager.Shutdown();
             }
             catch (Exception ex)
             {
-                modEntry.Logger.Error("[DedicatedHost] Failed to unpatch Harmony: " + ex);
+                modEntry.Logger.Error("[DedicatedHost] Failed to unload cleanly: " + ex);
             }
 
             enabled = false;
             return true;
         }
 
-        static void OnGUI()
+        public static void OnGUI()
         {
         }
     }
