@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using UnityEngine;
+using static System.Console;
 
 namespace RailroaderDedicatedHost
 {
@@ -37,7 +38,7 @@ namespace RailroaderDedicatedHost
 
             try
             {
-                Console.Title = "Railroader Dedicated Host";
+                Title = "Railroader Dedicated Host";
             }
             catch
             {
@@ -87,7 +88,7 @@ namespace RailroaderDedicatedHost
         {
             try
             {
-                Console.WriteLine("[DedicatedHost] " + message);
+                WriteLine("[DedicatedHost] " + message);
             }
             catch
             {
@@ -102,7 +103,7 @@ namespace RailroaderDedicatedHost
             {
                 try
                 {
-                    string line = Console.ReadLine();
+                    string line = ReadLine();
 
                     if (line == null)
                     {
@@ -164,7 +165,7 @@ namespace RailroaderDedicatedHost
         {
             try
             {
-                Console.Write("> ");
+                Write("> ");
             }
             catch
             {
