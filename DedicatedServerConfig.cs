@@ -22,6 +22,10 @@ namespace RailroaderDedicatedHost
         public bool TerminalMode = true;
         public bool AllocateConsoleWindow = true;
 
+        // If true, wrapper scripts should close the terminal on normal server stop.
+        // If false, wrapper scripts can pause so you can read the final output.
+        public bool CloseTerminalOnStop = true;
+
         // Fallback when Unity still creates a window. This does not disable Canvas or Camera objects.
         public bool HideGraphics = true;
         public bool MinimizeWindow = false;
