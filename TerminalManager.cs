@@ -99,6 +99,20 @@ namespace RailroaderDedicatedHost
             }
         }
 
+        public static void WriteRawLine(string message)
+        {
+            if (!_hasConsole)
+                return;
+
+            try
+            {
+                System.Console.WriteLine(message);
+            }
+            catch
+            {
+            }
+        }
+
         private static bool TryAttachOrCreateConsole(bool allowAllocConsole)
         {
             bool attached = AttachConsole(AttachParentProcess);
