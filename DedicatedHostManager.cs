@@ -46,15 +46,15 @@ namespace RailroaderDedicatedHost
             if (config.HideGraphics)
             {
                 GraphicsSuppressor.Apply(config, _modEntry);
+            }
 
-                if (config.HideWindow)
-                {
-                    WindowSuppressor.Hide(_modEntry);
-                }
-                else if (config.MinimizeWindow)
-                {
-                    WindowSuppressor.Minimize(_modEntry);
-                }
+            if (config.HideWindow)
+            {
+                WindowSuppressor.Hide(_modEntry);
+            }
+            else if (config.MinimizeWindow)
+            {
+                WindowSuppressor.Minimize(_modEntry);
             }
         }
 
@@ -68,6 +68,9 @@ namespace RailroaderDedicatedHost
 
             if (_config.HideGraphics)
                 GraphicsSuppressor.Tick();
+
+            if (_config.HideWindow || _config.MinimizeWindow)
+                WindowSuppressor.Tick();
 
             if (_config.AutosaveSeconds > 0)
             {
