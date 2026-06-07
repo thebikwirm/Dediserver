@@ -26,6 +26,14 @@ namespace RailroaderDedicatedHost
         // If false, wrapper scripts can pause so you can read the final output.
         public bool CloseTerminalOnStop = true;
 
+        // Realtime console log mirror. Set path relative to Railroader.exe, or use an absolute path.
+        public bool MirrorLogToTerminal = true;
+        public string MirrorLogPath = "railloader.log";
+        public bool MirrorLogFromStart = false;
+        public bool MirrorOwnDedicatedLogs = true;
+        public float MirrorLogPollSeconds = 0.25f;
+        public int MirrorLogMaxLinesPerPoll = 50;
+
         // Fallback when Unity still creates a window. This does not disable Canvas or Camera objects.
         public bool HideGraphics = true;
         public bool MinimizeWindow = false;
