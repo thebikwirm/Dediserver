@@ -104,8 +104,13 @@ namespace RailroaderDedicatedHost
             }
         }
 
-        public static void RequestShutdown(bool saveBeforeQuit = true)
+        public static void RequestShutdown(bool saveBeforeQuit = true, bool writeShutdownFlag = true)
         {
+            if (writeShutdownFlag)
+            {
+                RestartManager.RequestCleanShutdown("shutdown");
+            }
+
             if (saveBeforeQuit)
             {
                 try
