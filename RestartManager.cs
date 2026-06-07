@@ -12,6 +12,8 @@ namespace RailroaderDedicatedHost
         private static DedicatedServerConfig _config;
         private static string _modRestartFlagPath;
         private static string _gameRestartFlagPath;
+        private static string _modShutdownFlagPath;
+        private static string _gameShutdownFlagPath;
         private static DateTime _startedAt;
         private static DateTime? _nextRestartAt;
         private static readonly HashSet<int> _warningsSent = new HashSet<int>();
@@ -23,11 +25,14 @@ namespace RailroaderDedicatedHost
             _startedAt = DateTime.Now;
             _modRestartFlagPath = Path.Combine(modPath, "restart.flag");
             _gameRestartFlagPath = Path.Combine(Directory.GetCurrentDirectory(), "restart.flag");
+            _modShutdownFlagPath = Path.Combine(modPath, "shutdown.flag");
+            _gameShutdownFlagPath = Path.Combine(Directory.GetCurrentDirectory(), "shutdown.flag");
             _warningsSent.Clear();
             _restartRequested = false;
             _nextRestartAt = CalculateNextRestartTime(DateTime.Now);
 
             DedicatedHostManager.Log("Restart flag path: " + _gameRestartFlagPath);
+            DedicatedHostManager.Log("Shutdown flag path: " + _gameShutdownFlagPath);
 
             if (_nextRestartAt.HasValue)
             {
@@ -58,17 +63,30 @@ namespace RailroaderDedicatedHost
 
             _restartRequested = true;
 
-            WriteRestartFlag(_modRestartFlagPath);
-            WriteRestartFlag(_gameRestartFlagPath);
+            WriteFlag(_modRestartFlagPath);
+            WriteFlag(_gameRestartFlagPath);
+            DeleteFlag(_modShutdownFlagPath);
+            DeleteFlag(_gameShutdownFlagPath);
 
             DedicatedHostManager.Log("Restart requested: " + reason);
             TerminalManager.WriteLine("Restart requested: " + reason);
-            DedicatedHostManager.RequestShutdown(saveBeforeQuit: true);
+            DedicatedHostManager.RequestShutdown(saveBeforeQuit: true, writeShutdownFlag: false);
+        }
+
+        public static void RequestCleanShutdown(string reason)
+        {
+            WriteFlag(_modShutdownFlagPath);
+            WriteFlag(_gameShutdownFlagPath);
+            DeleteFlag(_modRestartFlagPath);
+            DeleteFlag(_gameRestartFlagPath);
+
+            DedicatedHostManager.Log("Clean shutdown requested: " + reason);
+            TerminalManager.WriteLine("Clean shutdown requested: " + reason);
         }
 
         public static string GetStatus()
         {
-            string flagInfo = "Restart flag: " + _gameRestartFlagPath;
+            string flagInfo = "Restart flag: " + _gameRestartFlagPath + "; Shutdown flag: " + _gameShutdownFlagPath;
 
             if (!_nextRestartAt.HasValue)
                 return "Automatic restart: disabled. " + flagInfo;
@@ -81,7 +99,7 @@ namespace RailroaderDedicatedHost
                    " (in " + FormatDuration(remaining) + "). " + flagInfo;
         }
 
-        private static void WriteRestartFlag(string path)
+        private static void WriteFlag(string path)
         {
             try
             {
@@ -96,7 +114,19 @@ namespace RailroaderDedicatedHost
             }
             catch (Exception ex)
             {
-                DedicatedHostManager.LogError("Failed to write restart flag " + path + ": " + ex);
+                DedicatedHostManager.LogError("Failed to write flag " + path + ": " + ex);
+            }
+        }
+
+        private static void DeleteFlag(string path)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                    File.Delete(path);
+            }
+            catch
+            {
             }
         }
 
