@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -38,6 +39,7 @@ namespace RailroaderDedicatedHost
         private static float _retryTimer;
         private static float _elapsed;
         private static bool _loggedWaiting;
+        private static int _successfulApplies;
 
         public static void Minimize(UnityModManager.ModEntry modEntry)
         {
@@ -63,10 +65,10 @@ namespace RailroaderDedicatedHost
             _retryTimer = 0.5f;
             TryApply();
 
-            if (_elapsed > 30f)
+            if (_elapsed > 60f)
             {
                 _active = false;
-                _modEntry?.Logger.Warning("[DedicatedHost] Stopped trying to hide/minimize game window after 30 seconds.");
+                _modEntry?.Logger.Log("[DedicatedHost] Finished startup window suppression. Applies=" + _successfulApplies);
                 DumpOwnedWindows();
             }
         }
@@ -80,6 +82,7 @@ namespace RailroaderDedicatedHost
             _retryTimer = 0f;
             _elapsed = 0f;
             _loggedWaiting = false;
+            _successfulApplies = 0;
             TryApply();
         }
 
@@ -87,9 +90,9 @@ namespace RailroaderDedicatedHost
         {
             try
             {
-                IntPtr handle = FindUnityGameWindow();
+                List<IntPtr> handles = FindUnityGameWindows();
 
-                if (handle == IntPtr.Zero)
+                if (handles.Count == 0)
                 {
                     if (!_loggedWaiting)
                     {
@@ -99,9 +102,16 @@ namespace RailroaderDedicatedHost
                     return;
                 }
 
-                ShowWindow(handle, _command);
-                _active = false;
-                _modEntry?.Logger.Log("[DedicatedHost] Game window " + _action + ".");
+                foreach (IntPtr handle in handles)
+                {
+                    ShowWindow(handle, _command);
+                    _successfulApplies++;
+                }
+
+                if (_successfulApplies == handles.Count)
+                {
+                    _modEntry?.Logger.Log("[DedicatedHost] Game window " + _action + ". Continuing to enforce during startup.");
+                }
             }
             catch (Exception ex)
             {
@@ -110,10 +120,10 @@ namespace RailroaderDedicatedHost
             }
         }
 
-        private static IntPtr FindUnityGameWindow()
+        private static List<IntPtr> FindUnityGameWindows()
         {
             uint currentPid = (uint)Process.GetCurrentProcess().Id;
-            IntPtr bestHandle = IntPtr.Zero;
+            List<IntPtr> handles = new List<IntPtr>();
 
             EnumWindows((hWnd, lParam) =>
             {
@@ -130,21 +140,21 @@ namespace RailroaderDedicatedHost
 
                 if (className.IndexOf("Unity", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    bestHandle = hWnd;
-                    return false;
+                    handles.Add(hWnd);
+                    return true;
                 }
 
-                if (IsWindowVisible(hWnd) && !string.IsNullOrWhiteSpace(title) &&
+                if (!string.IsNullOrWhiteSpace(title) &&
                     title.IndexOf("Railroader", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    bestHandle = hWnd;
-                    return false;
+                    handles.Add(hWnd);
+                    return true;
                 }
 
                 return true;
             }, IntPtr.Zero);
 
-            return bestHandle;
+            return handles;
         }
 
         private static void DumpOwnedWindows()
