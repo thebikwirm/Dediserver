@@ -42,6 +42,7 @@ namespace RailroaderDedicatedHost
             }
 
             RestartManager.Init(config, modEntry.Path);
+            LogTailer.Init(config);
 
             if (config.HideGraphics)
             {
@@ -65,6 +66,7 @@ namespace RailroaderDedicatedHost
 
             TerminalManager.Update();
             RestartManager.Update();
+            LogTailer.Update(deltaTime);
 
             if (_config.HideGraphics)
                 GraphicsSuppressor.Tick();
