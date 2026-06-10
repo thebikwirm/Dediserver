@@ -80,6 +80,7 @@
     <Compile Include="DedicatedBootstrap.cs" />
     <Compile Include="DedicatedHostManager.cs" />
     <Compile Include="DedicatedServerConfig.cs" />
+    <Compile Include="GameConsoleBridge.cs" />
     <Compile Include="GraphicsSuppressor.cs" />
     <Compile Include="LogTailer.cs" />
     <Compile Include="Main.cs" />

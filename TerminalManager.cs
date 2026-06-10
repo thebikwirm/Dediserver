@@ -186,6 +186,30 @@ namespace RailroaderDedicatedHost
         {
             string lower = command.ToLowerInvariant();
 
+            if (lower.StartsWith("game "))
+            {
+                GameConsoleBridge.TryExecute(command.Substring(5));
+                return;
+            }
+
+            if (command.StartsWith("/"))
+            {
+                GameConsoleBridge.TryExecute(command.Substring(1));
+                return;
+            }
+
+            if (lower == "gamebridge")
+            {
+                WriteLine(GameConsoleBridge.GetStatus());
+                return;
+            }
+
+            if (lower == "findconsole")
+            {
+                GameConsoleBridge.DebugSearchCandidates();
+                return;
+            }
+
             if (lower == "help" || lower == "?")
             {
                 WriteLine("Commands: help, status, save, restart, restartstatus, shutdown, quit, exit");
@@ -201,6 +225,8 @@ namespace RailroaderDedicatedHost
                 WriteLine("BatchMode: " + Application.isBatchMode);
                 WriteLine("GraphicsDevice: " + SystemInfo.graphicsDeviceType);
                 WriteLine("Multiplayer active: " + Multiplayer.IsClientActive);
+                WriteLine("Commands: help, status, save, restart, restartstatus, gamebridge, findconsole, shutdown, quit, exit");
+                WriteLine("Game pass-through: game <command> or /<command>");
                 WriteLine(RestartManager.GetStatus());
                 return;
             }
