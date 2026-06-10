@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityModManagerNet;
 
@@ -8,9 +8,12 @@ namespace RailroaderDedicatedHost
     {
         private static bool _applied;
         private static float _scanTimer;
+        private static DedicatedServerConfig _config;
 
         public static void Apply(DedicatedServerConfig config, UnityModManager.ModEntry modEntry)
         {
+            _config = config;
+
             if (_applied)
                 return;
 
@@ -31,10 +34,7 @@ namespace RailroaderDedicatedHost
                 QualitySettings.antiAliasing = 0;
                 QualitySettings.masterTextureLimit = 3;
 
-                AudioListener.volume = 0f;
-                AudioListener.volume = 0f;
-
-                DisableSafeObjects();
+                MuteAudioSources();
 
                 if (config.AggressiveGraphicsDisable)
                     DisableAggressiveObjects();
@@ -56,14 +56,23 @@ namespace RailroaderDedicatedHost
 
             _scanTimer = 0f;
 
-            DisableSafeObjects();
+            MuteAudioSources();
         }
 
-        private static void DisableSafeObjects()
+        private static void MuteAudioSources()
         {
+            if (_config == null || !_config.MuteAudio)
+                return;
+
+            AudioListener.volume = Mathf.Clamp01(_config.AudioVolume);
+
             foreach (AudioSource audio in UnityEngine.Object.FindObjectsOfType<AudioSource>())
             {
-                audio.enabled = false;
+                if (audio == null)
+                    continue;
+
+                audio.mute = true;
+                audio.volume = 0f;
             }
         }
 
