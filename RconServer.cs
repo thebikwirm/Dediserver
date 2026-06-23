@@ -23,13 +23,51 @@ namespace RailroaderDedicatedHost
             _config = config;
             _startedAt = DateTime.Now;
 
-            if (config == null || !config.EnableRcon)
+            DedicatedHostManager.Log("RCON init called.");
+
+            if (config == null)
+            {
+                DedicatedHostManager.LogError("RCON config is null.");
                 return;
+            }
+
+            DedicatedHostManager.Log(
+                "RCON config: EnableRcon=" + config.EnableRcon +
+                " Bind=" + config.RconBindAddress +
+                " Port=" + config.RconPort +
+                " PasswordSet=" + !string.IsNullOrEmpty(config.RconPassword));
+
+            if (!config.EnableRcon)
+            {
+                DedicatedHostManager.Log("RCON disabled by config.");
+                return;
+            }
+
+            if (_running)
+            {
+                DedicatedHostManager.Log("RCON already running.");
+                return;
+            }
 
             try
             {
-                IPAddress bindAddress = IPAddress.Parse(string.IsNullOrWhiteSpace(config.RconBindAddress) ? "127.0.0.1" : config.RconBindAddress);
+                string bindText = string.IsNullOrWhiteSpace(config.RconBindAddress) ? "127.0.0.1" : config.RconBindAddress.Trim();
+                IPAddress bindAddress;
+
+                if (!IPAddress.TryParse(bindText, out bindAddress))
+                {
+                    DedicatedHostManager.LogError("Invalid RCON bind address: " + bindText);
+                    return;
+                }
+
+                if (config.RconPort <= 0 || config.RconPort > 65535)
+                {
+                    DedicatedHostManager.LogError("Invalid RCON port: " + config.RconPort);
+                    return;
+                }
+
                 _listener = new TcpListener(bindAddress, config.RconPort);
+                _listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 _listener.Start();
 
                 _running = true;
@@ -45,6 +83,7 @@ namespace RailroaderDedicatedHost
             }
             catch (Exception ex)
             {
+                _running = false;
                 DedicatedHostManager.LogError("Failed to start RCON: " + ex);
             }
         }
@@ -71,6 +110,7 @@ namespace RailroaderDedicatedHost
             try
             {
                 _listener?.Stop();
+                DedicatedHostManager.Log("RCON stopped.");
             }
             catch
             {
@@ -79,11 +119,26 @@ namespace RailroaderDedicatedHost
 
         private static void ListenLoop()
         {
+            DedicatedHostManager.Log("RCON listener thread started.");
+
             while (_running)
             {
                 try
                 {
                     TcpClient client = _listener.AcceptTcpClient();
+                    client.NoDelay = true;
+
+                    string remote = "unknown";
+                    try
+                    {
+                        remote = client.Client.RemoteEndPoint != null ? client.Client.RemoteEndPoint.ToString() : "unknown";
+                    }
+                    catch
+                    {
+                    }
+
+                    DedicatedHostManager.Log("RCON client connected: " + remote);
+
                     Thread clientThread = new Thread(() => ClientLoop(client))
                     {
                         IsBackground = true,
@@ -91,12 +146,17 @@ namespace RailroaderDedicatedHost
                     };
                     clientThread.Start();
                 }
-                catch
+                catch (Exception ex)
                 {
                     if (_running)
+                    {
+                        DedicatedHostManager.LogError("RCON accept failed: " + ex.Message);
                         Thread.Sleep(250);
+                    }
                 }
             }
+
+            DedicatedHostManager.Log("RCON listener thread stopped.");
         }
 
         private static void ClientLoop(TcpClient client)
@@ -108,7 +168,7 @@ namespace RailroaderDedicatedHost
                 using (client)
                 using (NetworkStream stream = client.GetStream())
                 using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
-                using (StreamWriter writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
+                using (StreamWriter writer = new StreamWriter(stream, new UTF8Encoding(false)) { AutoFlush = true })
                 {
                     writer.WriteLine("DEDISERVER RCON READY");
                     writer.WriteLine("AUTH <password> required");
@@ -120,6 +180,8 @@ namespace RailroaderDedicatedHost
                         if (line.Length == 0)
                             continue;
 
+                        DedicatedHostManager.Log("RCON command received: " + Redact(line));
+
                         string response = HandleCommand(line, ref authed);
                         writer.WriteLine(response);
 
@@ -128,8 +190,9 @@ namespace RailroaderDedicatedHost
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                DedicatedHostManager.LogError("RCON client error: " + ex.Message);
             }
         }
 
@@ -212,6 +275,17 @@ namespace RailroaderDedicatedHost
                 return string.Empty;
 
             return value.Replace(";", ",").Replace("\r", " ").Replace("\n", " ");
+        }
+
+        private static string Redact(string line)
+        {
+            if (line == null)
+                return string.Empty;
+
+            if (line.StartsWith("auth ", StringComparison.OrdinalIgnoreCase))
+                return "AUTH <redacted>";
+
+            return line;
         }
     }
 }
