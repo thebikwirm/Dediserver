@@ -26,6 +26,12 @@ namespace RailroaderDedicatedHost
         // If false, wrapper scripts can pause so you can read the final output.
         public bool CloseTerminalOnStop = true;
 
+        // RCON remote control. Keep BindAddress as 127.0.0.1 unless you have firewall rules and a strong password.
+        public bool EnableRcon = false;
+        public string RconBindAddress = "127.0.0.1";
+        public int RconPort = 28016;
+        public string RconPassword = "changeme";
+
         // Realtime console log mirror. Set path relative to Railroader.exe, or use an absolute path.
         public bool MirrorLogToTerminal = true;
         public string MirrorLogPath = "railloader.log";
@@ -39,6 +45,8 @@ namespace RailroaderDedicatedHost
         public bool MinimizeWindow = false;
         public bool HideWindow = true;
         public bool AggressiveGraphicsDisable = false;
+        public bool MuteAudio = true;
+        public float AudioVolume = 0f;
 
         public int TargetServerFps = 20;
         public int AutosaveSeconds = 300;
