@@ -1,3 +1,4 @@
+using Game.State;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -127,6 +128,8 @@ namespace RailroaderDedicatedHost
                 {
                     TcpClient client = _listener.AcceptTcpClient();
                     client.NoDelay = true;
+                    client.ReceiveTimeout = 30000;
+                    client.SendTimeout = 30000;
 
                     string remote = "unknown";
                     try
@@ -216,7 +219,7 @@ namespace RailroaderDedicatedHost
                 return "ERR NOT AUTHENTICATED";
 
             if (lower == "help")
-                return "OK COMMANDS: PING STATUS SAVE RESTART SHUTDOWN GAME <command> QUIT";
+                return BuildHelp();
 
             if (lower == "ping")
                 return "OK PONG";
@@ -224,10 +227,29 @@ namespace RailroaderDedicatedHost
             if (lower == "status")
                 return BuildStatus();
 
+            if (lower == "uptime")
+                return BuildUptime();
+
+            if (lower == "version")
+                return BuildVersion();
+
+            if (lower == "players")
+                return BuildPlayers();
+
             if (lower == "save")
             {
                 _mainThreadActions.Enqueue(() => DedicatedHostManager.RequestSave("rcon command"));
                 return "OK SAVE QUEUED";
+            }
+
+            if (lower == "saveandrestart" || lower == "save_restart" || lower == "save-restart")
+            {
+                _mainThreadActions.Enqueue(() =>
+                {
+                    DedicatedHostManager.RequestSave("rcon saveandrestart command");
+                    DedicatedHostManager.RequestRestart("rcon saveandrestart command");
+                });
+                return "OK SAVEANDRESTART QUEUED";
             }
 
             if (lower == "restart")
@@ -255,6 +277,23 @@ namespace RailroaderDedicatedHost
             return "ERR UNKNOWN COMMAND";
         }
 
+        private static string BuildHelp()
+        {
+            return "OK HELP\n" +
+                   "AUTH <password>\n" +
+                   "PING\n" +
+                   "STATUS\n" +
+                   "UPTIME\n" +
+                   "VERSION\n" +
+                   "PLAYERS\n" +
+                   "SAVE\n" +
+                   "SAVEANDRESTART\n" +
+                   "RESTART\n" +
+                   "SHUTDOWN\n" +
+                   "GAME <command>\n" +
+                   "QUIT";
+        }
+
         private static string BuildStatus()
         {
             DedicatedServerConfig config = DedicatedHostManager.Config;
@@ -264,9 +303,90 @@ namespace RailroaderDedicatedHost
                    "dedicated=" + DedicatedHostManager.IsDedicated + ";" +
                    "serverName=" + Safe(config != null ? config.ServerName : null) + ";" +
                    "saveName=" + Safe(config != null ? config.SaveName : null) + ";" +
+                   "players=" + GetPlayerCountSafe() + ";" +
                    "uptimeSeconds=" + (int)uptime.TotalSeconds + ";" +
+                   "version=" + Safe(GetVersionString()) + ";" +
                    "batchMode=" + Application.isBatchMode + ";" +
                    "targetFps=" + Application.targetFrameRate;
+        }
+
+        private static string BuildUptime()
+        {
+            return "OK UPTIME " + (int)(DateTime.Now - _startedAt).TotalSeconds;
+        }
+
+        private static string BuildVersion()
+        {
+            return "OK VERSION " + GetVersionString();
+        }
+
+        private static string BuildPlayers()
+        {
+            try
+            {
+                StateManager state = StateManager.Shared;
+                if (state == null || state.PlayersManager == null)
+                    return "OK PLAYERS 0";
+
+                StringBuilder sb = new StringBuilder();
+                int count = 0;
+
+                foreach (IPlayer player in state.PlayersManager.AllPlayers)
+                {
+                    if (player == null)
+                        continue;
+
+                    count++;
+                    sb.AppendLine(Safe(player.Name));
+                }
+
+                string playersText = sb.ToString().TrimEnd('\r', '\n');
+                if (playersText.Length == 0)
+                    return "OK PLAYERS " + count;
+
+                return "OK PLAYERS " + count + "\n" + playersText;
+            }
+            catch (Exception ex)
+            {
+                DedicatedHostManager.LogError("PLAYERS failed: " + ex);
+                return "ERR PLAYERS FAILED";
+            }
+        }
+
+        private static int GetPlayerCountSafe()
+        {
+            try
+            {
+                StateManager state = StateManager.Shared;
+                if (state == null || state.PlayersManager == null)
+                    return 0;
+
+                int count = 0;
+                foreach (IPlayer player in state.PlayersManager.AllPlayers)
+                {
+                    if (player != null)
+                        count++;
+                }
+
+                return count;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private static string GetVersionString()
+        {
+            try
+            {
+                Version version = typeof(RconServer).Assembly.GetName().Version;
+                return version != null ? version.ToString() : "unknown";
+            }
+            catch
+            {
+                return "unknown";
+            }
         }
 
         private static string Safe(string value)
