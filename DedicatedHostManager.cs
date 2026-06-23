@@ -43,6 +43,7 @@ namespace RailroaderDedicatedHost
 
             RestartManager.Init(config, modEntry.Path);
             LogTailer.Init(config);
+            RconServer.Init(config);
 
             if (config.HideGraphics)
             {
@@ -67,6 +68,7 @@ namespace RailroaderDedicatedHost
             TerminalManager.Update();
             RestartManager.Update();
             LogTailer.Update(deltaTime);
+            RconServer.Update();
 
             if (_config.HideGraphics)
                 GraphicsSuppressor.Tick();
@@ -125,6 +127,7 @@ namespace RailroaderDedicatedHost
             }
 
             Log("Application quit requested.");
+            RconServer.Shutdown();
             TerminalManager.Shutdown();
             Application.Quit();
         }
