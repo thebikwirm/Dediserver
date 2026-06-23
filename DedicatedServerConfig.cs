@@ -48,9 +48,6 @@ namespace RailroaderDedicatedHost
         public bool MuteAudio = true;
         public float AudioVolume = 0f;
 
-        public bool MuteAudio = true;
-        public float AudioVolume = 0f;
-
         public int TargetServerFps = 20;
         public int AutosaveSeconds = 300;
 
