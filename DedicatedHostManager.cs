@@ -29,10 +29,7 @@ namespace RailroaderDedicatedHost
                 return;
             }
 
-            DedicatedPaths.Init(config, modEntry.Path);
-
             Log("Dedicated mode enabled.");
-            Log("Railroader install path: " + DedicatedPaths.GamePath);
             Log("BatchMode: " + Application.isBatchMode);
             Log("GraphicsDevice: " + SystemInfo.graphicsDeviceType);
 
