@@ -24,9 +24,9 @@ namespace RailroaderDedicatedHost
             _config = config;
             _startedAt = DateTime.Now;
             _modRestartFlagPath = Path.Combine(modPath, "restart.flag");
-            _gameRestartFlagPath = DedicatedPaths.ResolveGamePath("restart.flag");
+            _gameRestartFlagPath = Path.Combine(Directory.GetCurrentDirectory(), "restart.flag");
             _modShutdownFlagPath = Path.Combine(modPath, "shutdown.flag");
-            _gameShutdownFlagPath = DedicatedPaths.ResolveGamePath("shutdown.flag");
+            _gameShutdownFlagPath = Path.Combine(Directory.GetCurrentDirectory(), "shutdown.flag");
             _warningsSent.Clear();
             _restartRequested = false;
             _nextRestartAt = CalculateNextRestartTime(DateTime.Now);
