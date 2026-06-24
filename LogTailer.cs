@@ -126,10 +126,7 @@ namespace RailroaderDedicatedHost
             if (string.IsNullOrWhiteSpace(path))
                 path = "railloader.log";
 
-            if (Path.IsPathRooted(path))
-                return path;
-
-            return Path.Combine(Directory.GetCurrentDirectory(), path);
+            return DedicatedPaths.ResolveGamePath(path);
         }
     }
 }
