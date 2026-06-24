@@ -15,10 +15,6 @@ namespace RailroaderDedicatedHost
         public string Password = "";
         public int Port = 7777;
 
-        // Optional absolute path to the Railroader install folder containing Railroader.exe.
-        // Leave empty to auto-detect from the process working directory or mod folder.
-        public string RailroaderInstallPath = "";
-
         // Dedicated v2: keep UI systems alive for compatibility, but do not require the UI to be visible.
         public bool RequireExistingSave = true;
         public bool NoGuiMode = true;
