@@ -1,7 +1,6 @@
 using HarmonyLib;
 using RailroaderDedicatedHost;
 using System;
-using System.IO;
 using UnityEngine;
 using UnityModManagerNet;
 
@@ -15,11 +14,6 @@ namespace Dediserver
 
         public static bool Load(UnityModManager.ModEntry modEntry)
         {
-            File.AppendAllText(
-                @"D:\deditest.txt",
-                "LOAD CALLED " + DateTime.Now + Environment.NewLine
-            );
-
             enabled = true;
 
             modEntry.Logger.Log("[DedicatedHost] Main.Load entered.");
