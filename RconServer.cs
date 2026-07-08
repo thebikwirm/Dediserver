@@ -32,11 +32,13 @@ namespace RailroaderDedicatedHost
                 return;
             }
 
+            string bindText = string.IsNullOrWhiteSpace(config.RconBindAddress) ? "127.0.0.1" : config.RconBindAddress.Trim();
+
             DedicatedHostManager.Log(
                 "RCON config: EnableRcon=" + config.EnableRcon +
-                " Bind=" + config.RconBindAddress +
+                " Bind=" + bindText +
                 " Port=" + config.RconPort +
-                " PasswordSet=" + !string.IsNullOrEmpty(config.RconPassword));
+                " PasswordConfigured=" + !string.IsNullOrWhiteSpace(config.RconPassword));
 
             if (!config.EnableRcon)
             {
@@ -52,14 +54,8 @@ namespace RailroaderDedicatedHost
 
             try
             {
-                string bindText = string.IsNullOrWhiteSpace(config.RconBindAddress) ? "127.0.0.1" : config.RconBindAddress.Trim();
-                IPAddress bindAddress;
-
-                if (!IPAddress.TryParse(bindText, out bindAddress))
-                {
-                    DedicatedHostManager.LogError("Invalid RCON bind address: " + bindText);
+                if (!ValidateRconSecurity(config, bindText, out IPAddress bindAddress))
                     return;
-                }
 
                 if (config.RconPort <= 0 || config.RconPort > 65535)
                 {
@@ -79,6 +75,7 @@ namespace RailroaderDedicatedHost
                 };
                 _listenerThread.Start();
 
+                WriteRconSecurityWarning(bindAddress, config.RconPort);
                 DedicatedHostManager.Log("RCON listening on " + bindAddress + ":" + config.RconPort);
                 TerminalManager.WriteLine("RCON listening on " + bindAddress + ":" + config.RconPort);
             }
@@ -116,6 +113,124 @@ namespace RailroaderDedicatedHost
             catch
             {
             }
+        }
+
+        private static bool ValidateRconSecurity(DedicatedServerConfig config, string bindText, out IPAddress bindAddress)
+        {
+            bindAddress = null;
+
+            if (!IPAddress.TryParse(bindText, out bindAddress))
+            {
+                DedicatedHostManager.LogError("Invalid RCON bind address: " + bindText);
+                return false;
+            }
+
+            if (!IsStrongCustomPassword(config.RconPassword, out string passwordReason))
+            {
+                DedicatedHostManager.LogError("RCON refused to start: " + passwordReason);
+                DedicatedHostManager.LogError("Set a unique strong RconPassword before enabling RCON. Recommended: 16+ characters with letters, numbers, and symbols.");
+                TerminalManager.WriteLine("RCON refused to start: set a unique strong RconPassword before enabling remote control.");
+                return false;
+            }
+
+            if (!IPAddress.IsLoopback(bindAddress))
+            {
+                DedicatedHostManager.LogError("RCON is not bound to loopback. Bind=" + bindAddress + ". Prefer 127.0.0.1 unless protected by firewall/VPN.");
+            }
+
+            return true;
+        }
+
+        private static bool IsStrongCustomPassword(string password, out string reason)
+        {
+            reason = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                reason = "RconPassword is empty.";
+                return false;
+            }
+
+            string trimmed = password.Trim();
+            string lower = trimmed.ToLowerInvariant();
+
+            if (trimmed.Length < 12)
+            {
+                reason = "RconPassword is too short; use at least 12 characters, preferably 16+.";
+                return false;
+            }
+
+            string[] blocked =
+            {
+                "changeme",
+                "change_me",
+                "password",
+                "admin",
+                "administrator",
+                "rcon",
+                "railroader",
+                "dediserver",
+                "dedicated",
+                "server",
+                "test",
+                "test123",
+                "123456",
+                "123456789",
+                "1234567890",
+                "qwerty"
+            };
+
+            foreach (string weak in blocked)
+            {
+                if (lower == weak || lower.Contains(weak))
+                {
+                    reason = "RconPassword contains a weak/default value.";
+                    return false;
+                }
+            }
+
+            bool hasUpper = false;
+            bool hasLower = false;
+            bool hasDigit = false;
+            bool hasSymbol = false;
+
+            foreach (char c in trimmed)
+            {
+                if (char.IsUpper(c)) hasUpper = true;
+                else if (char.IsLower(c)) hasLower = true;
+                else if (char.IsDigit(c)) hasDigit = true;
+                else hasSymbol = true;
+            }
+
+            int groups = 0;
+            if (hasUpper) groups++;
+            if (hasLower) groups++;
+            if (hasDigit) groups++;
+            if (hasSymbol) groups++;
+
+            if (groups < 3)
+            {
+                reason = "RconPassword should include at least three of: uppercase, lowercase, numbers, symbols.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static void WriteRconSecurityWarning(IPAddress bindAddress, int port)
+        {
+            bool loopback = IPAddress.IsLoopback(bindAddress);
+            string exposure = loopback
+                ? "RCON is bound to loopback/local-only. Keep it this way unless you know what you are doing."
+                : "WARNING: RCON is reachable from outside this machine if your firewall/network allows it.";
+
+            string warning =
+                "RCON SECURITY WARNING: RCON can save, restart, stop, and run server commands. " +
+                exposure + " Bind=" + bindAddress + ":" + port +
+                ". Use a unique strong password and never expose RCON publicly without firewall/VPN protection.";
+
+            DedicatedHostManager.LogError(warning);
+            TerminalManager.WriteLine(warning);
         }
 
         private static void ListenLoop()
@@ -218,23 +333,12 @@ namespace RailroaderDedicatedHost
             if (!authed)
                 return "ERR NOT AUTHENTICATED";
 
-            if (lower == "help")
-                return BuildHelp();
-
-            if (lower == "ping")
-                return "OK PONG";
-
-            if (lower == "status")
-                return BuildStatus();
-
-            if (lower == "uptime")
-                return BuildUptime();
-
-            if (lower == "version")
-                return BuildVersion();
-
-            if (lower == "players")
-                return BuildPlayers();
+            if (lower == "help") return BuildHelp();
+            if (lower == "ping") return "OK PONG";
+            if (lower == "status") return BuildStatus();
+            if (lower == "uptime") return BuildUptime();
+            if (lower == "version") return BuildVersion();
+            if (lower == "players") return BuildPlayers();
 
             if (lower == "save")
             {
@@ -331,7 +435,7 @@ namespace RailroaderDedicatedHost
                 StringBuilder sb = new StringBuilder();
                 int count = 0;
 
-                foreach (IPlayer player in state.PlayersManager.AllPlayers)
+                foreach (var player in state.PlayersManager.AllPlayers)
                 {
                     if (player == null)
                         continue;
@@ -362,7 +466,7 @@ namespace RailroaderDedicatedHost
                     return 0;
 
                 int count = 0;
-                foreach (IPlayer player in state.PlayersManager.AllPlayers)
+                foreach (var player in state.PlayersManager.AllPlayers)
                 {
                     if (player != null)
                         count++;
