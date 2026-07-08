@@ -26,11 +26,17 @@ namespace RailroaderDedicatedHost
         // If false, wrapper scripts can pause so you can read the final output.
         public bool CloseTerminalOnStop = true;
 
-        // RCON remote control. Keep BindAddress as 127.0.0.1 unless you have firewall rules and a strong password.
+        // RCON remote control.
+        // Safe defaults for public releases:
+        // - RCON is disabled by default.
+        // - The default bind address is local-only loopback.
+        // - No default password is provided.
+        // To enable RCON, set EnableRcon=true and choose a unique strong password.
+        // Do not bind RCON to a public interface unless you understand the security risk and have firewall/VPN protection.
         public bool EnableRcon = false;
         public string RconBindAddress = "127.0.0.1";
         public int RconPort = 28016;
-        public string RconPassword = "changeme";
+        public string RconPassword = "";
 
         // Realtime console log mirror. Set path relative to Railroader.exe, or use an absolute path.
         public bool MirrorLogToTerminal = true;
