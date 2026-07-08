@@ -40,6 +40,10 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>D:\SteamLibrary\steamapps\common\Railroader\Railroader_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="Obi, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>D:\SteamLibrary\steamapps\common\Railroader\Railroader_Data\Managed\Obi.dll</HintPath>
+    </Reference>
     <Reference Include="Serilog">
       <HintPath>D:\SteamLibrary\steamapps\common\Railroader\Railroader_Data\Managed\Serilog.dll</HintPath>
     </Reference>
