@@ -113,6 +113,19 @@ namespace RailroaderDedicatedHost
             }
         }
 
+        private static void WriteBlock(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+            {
+                WriteLine(string.Empty);
+                return;
+            }
+
+            string[] lines = message.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            foreach (string line in lines)
+                WriteLine(line);
+        }
+
         private static bool TryAttachOrCreateConsole(bool allowAllocConsole)
         {
             bool attached = AttachConsole(AttachParentProcess);
@@ -210,9 +223,22 @@ namespace RailroaderDedicatedHost
                 return;
             }
 
+            if (lower == "modsyncbridge" || lower == "modsyncstatus")
+            {
+                WriteLine(ModSyncBridge.GetStatus());
+                return;
+            }
+
+            if (lower == "modsync" || lower.StartsWith("modsync "))
+            {
+                WriteBlock(ModSyncBridge.Execute(command));
+                return;
+            }
+
             if (lower == "help" || lower == "?")
             {
-                WriteLine("Commands: help, status, save, restart, restartstatus, shutdown, quit, exit");
+                WriteLine("Commands: help, status, save, restart, restartstatus, modsync <command>, modsyncbridge, shutdown, quit, exit");
+                WriteLine("Game pass-through: game <command> or /<command>");
                 return;
             }
 
@@ -225,8 +251,9 @@ namespace RailroaderDedicatedHost
                 WriteLine("BatchMode: " + Application.isBatchMode);
                 WriteLine("GraphicsDevice: " + SystemInfo.graphicsDeviceType);
                 WriteLine("Multiplayer active: " + Multiplayer.IsClientActive);
-                WriteLine("Commands: help, status, save, restart, restartstatus, gamebridge, findconsole, shutdown, quit, exit");
+                WriteLine("Commands: help, status, save, restart, restartstatus, gamebridge, findconsole, modsync <command>, modsyncbridge, shutdown, quit, exit");
                 WriteLine("Game pass-through: game <command> or /<command>");
+                WriteLine(ModSyncBridge.GetStatus());
                 WriteLine(RestartManager.GetStatus());
                 return;
             }
