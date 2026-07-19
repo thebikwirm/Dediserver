@@ -88,6 +88,7 @@
     <Compile Include="GraphicsSuppressor.cs" />
     <Compile Include="LogTailer.cs" />
     <Compile Include="Main.cs" />
+    <Compile Include="ModSyncBridge.cs" />
     <Compile Include="Patch_MenuManager_AutoHost.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RconServer.cs" />
