@@ -341,6 +341,8 @@ namespace RailroaderDedicatedHost
             if (lower == "uptime") return BuildUptime();
             if (lower == "version") return BuildVersion();
             if (lower == "players") return BuildPlayers();
+            if (lower == "modsyncstatus") return "OK " + ModSyncBridge.GetStatus();
+            if (lower == "modsync" || lower.StartsWith("modsync ")) return ModSyncBridge.Execute(line);
 
             if (lower == "save")
             {
@@ -392,6 +394,8 @@ namespace RailroaderDedicatedHost
                    "UPTIME\n" +
                    "VERSION\n" +
                    "PLAYERS\n" +
+                   "MODSYNC <command>\n" +
+                   "MODSYNCSTATUS\n" +
                    "SAVE\n" +
                    "SAVEANDRESTART\n" +
                    "RESTART\n" +
@@ -413,7 +417,8 @@ namespace RailroaderDedicatedHost
                    "uptimeSeconds=" + (int)uptime.TotalSeconds + ";" +
                    "version=" + Safe(GetVersionString()) + ";" +
                    "batchMode=" + Application.isBatchMode + ";" +
-                   "targetFps=" + Application.targetFrameRate;
+                   "targetFps=" + Application.targetFrameRate + ";" +
+                   "modSync=" + Safe(ModSyncBridge.GetStatus());
         }
 
         private static string BuildUptime()
